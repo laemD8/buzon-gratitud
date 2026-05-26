@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Buzón de Gratitud · L10</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #ffffff;
+    --bg2:       #f7f7f7;
+    --bg3:       #f0f0f0;
+    --border:    #e4e4e4;
+    --border2:   #d0d0d0;
+    --ink:       #0a0a0a;
+    --ink2:      #3a3a3a;
+    --muted:     #888;
+    --muted2:    #bbb;
+    --accent:    #0066ff;
+    --accent-lt: #e8f0ff;
+    --green:     #00c853;
+    --green-lt:  #e6faf0;
+    --red:       #ff3b3b;
+
+    --a0: #0066ff; --a0l: #dce8ff; --a0t: #003db3;
+    --a1: #00b894; --a1l: #d4f5ee; --a1t: #007a64;
+    --a2: #6c5ce7; --a2l: #ede9ff; --a2t: #4a3db5;
+    --a3: #e17055; --a3l: #fdeae5; --a3t: #b54a2e;
+    --a4: #fd79a8; --a4l: #ffe4f0; --a4t: #c0517c;
+    --a5: #fdcb6e; --a5l: #fff8e4; --a5t: #9e7b00;
+
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 100vh;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* subtle grid bg */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app {
+    position: relative; z-index: 1;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 2.5rem;
+    gap: 1rem;
+  }
+
+  .header-left {}
+
+  .header-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .header-eyebrow::before {
+    content: '';
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .header h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+  }
+
+  .header h1 span {
+    color: var(--accent);
+  }
+
+  .header-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-weight: 300;
+  }
+
+  .header-meta {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--muted2);
+    text-align: right;
+    line-height: 1.8;
+    padding-top: 4px;
+    flex-shrink: 0;
+  }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0 0 2rem;
+  }
+
+  /* ── GRID ── */
+  .members-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    gap: 12px;
+    margin-bottom: 2.5rem;
+  }
+
+  /* ── MEMBER CARD ── */
+  .mbox {
+    position: relative;
+    cursor: pointer;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1rem 1rem;
+    text-align: center;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    overflow: hidden;
+  }
+
+  .mbox:hover {
+    border-color: var(--border2);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.07);
+    transform: translateY(-2px);
+  }
+
+  .mbox-top-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  .mbox-icon-wrap {
+    width: 44px; height: 44px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 10px;
+  }
+
+  .mbox-badge {
+    position: absolute;
+    top: 10px; right: 10px;
+    min-width: 18px; height: 18px;
+    border-radius: 9px;
+    font-size: 9px;
+    font-weight: 600;
+    font-family: 'Geist Mono', monospace;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 4px;
+    border: 1.5px solid var(--bg);
+  }
+
+  .mbox-avatar {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 0 auto 8px;
+    letter-spacing: 0.02em;
+  }
+
+  .mbox-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+
+  .mbox-count {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+  }
+
+  /* ── VIEW: MEMBER DETAIL ── */
+  .hidden { display: none !important; }
+
+  .back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 5px 12px;
+    font-family: 'Inter', sans-serif;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.12s, color 0.12s;
+  }
+  .back-btn:hover { border-color: var(--border2); color: var(--ink); }
+
+  .member-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 1.25rem;
+  }
+
+  .member-hero-av {
+    width: 52px; height: 52px;
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+
+  .member-hero-name {
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  .member-hero-sub {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* ── COMPOSE ── */
+  .compose-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .section-label {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .field-row { margin-bottom: 10px; }
+
+  .field-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-bottom: 5px;
+    display: block;
+  }
+
+  .styled-select, .styled-textarea {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .styled-select:focus, .styled-textarea:focus {
+    border-color: var(--accent);
+    background: var(--bg);
+    box-shadow: 0 0 0 3px var(--accent-lt);
+  }
+  .styled-select { height: 36px; cursor: pointer; }
+  .styled-textarea { min-height: 80px; resize: vertical; line-height: 1.6; }
+
+  .compose-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+  }
+
+  .char-count {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--muted2);
+  }
+
+  .send-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--ink);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: background 0.13s, transform 0.1s;
+  }
+  .send-btn:hover { background: var(--ink2); }
+  .send-btn:active { transform: scale(0.97); }
+
+  /* ── LETTERS ── */
+  .letters-section { margin-top: 1.5rem; }
+
+  .letter-card {
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem 1.1rem;
+    margin-bottom: 8px;
+    overflow: hidden;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(6px); } to { opacity:1; transform: translateY(0); } }
+
+  .letter-accent {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+
+  .letter-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    padding-left: 3px;
+  }
+
+  .letter-av {
+    width: 24px; height: 24px;
+    border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .letter-from {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ink2);
+  }
+
+  .letter-time {
+    font-family: 'Geist Mono', monospace;
+    font-size: 10px;
+    color: var(--muted2);
+    margin-left: auto;
+  }
+
+  .letter-body {
+    font-size: 13px;
+    color: var(--ink2);
+    line-height: 1.65;
+    padding-left: 32px;
+  }
+
+  .empty-state {
+    border: 1px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 3rem 2rem;
+    text-align: center;
+  }
+  .empty-icon {
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    color: var(--muted2);
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 10px;
+  }
+  .empty-text {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    background: var(--ink);
+    color: #fff;
+    font-size: 12px;
+    font-family: 'Geist Mono', monospace;
+    padding: 8px 20px;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+    transition: opacity 0.2s, transform 0.2s;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <div class="header-eyebrow">L10 Weekly · Gratitud</div>
+      <h1>Buzón de <span>Gratitud</span></h1>
+      <p class="header-sub">Reconoce el trabajo de tu equipo cada semana</p>
+    </div>
+    <div class="header-meta" id="headerMeta">
+      — / —&nbsp;mensajes<br>
+      —&nbsp;miembros
+    </div>
+  </div>
+  <div class="divider"></div>
+
+  <!-- LIST VIEW -->
+  <div id="listView">
+    <div class="members-grid" id="membersGrid"></div>
+
+  </div>
+
+  <!-- MEMBER VIEW -->
+  <div id="memberView" class="hidden">
+    <button class="back-btn" onclick="goBack()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8,1 2,6 8,11"/></svg>
+      volver
+    </button>
+
+    <div class="member-hero" id="memberHero"></div>
+
+    <div class="compose-card">
+      <div class="section-label">Nueva cartita</div>
+      <div class="field-row">
+        <label class="field-label">De:</label>
+        <select class="styled-select" id="fromSelect">
+          <option value="" disabled selected>Selecciona tu nombre...</option>
+        </select>
+      </div>
+      <div class="field-row">
+        <label class="field-label">Mensaje:</label>
+        <textarea class="styled-textarea" id="msgText" placeholder="Escribe tu mensaje de agradecimiento..." maxlength="400" oninput="updateCharCount()"></textarea>
+      </div>
+      <div class="compose-footer">
+        <span class="char-count" id="charCount">0 / 400</span>
+        <button class="send-btn" onclick="sendMessage()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Enviar
+        </button>
+      </div>
+    </div>
+
+    <div class="letters-section">
+      <div class="section-label">Mensajes recibidos</div>
+      <div id="lettersContainer"></div>
+    </div>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const THEMES = [
+  { c:'var(--a0)', lt:'var(--a0l)', dark:'var(--a0t)' },
+  { c:'var(--a1)', lt:'var(--a1l)', dark:'var(--a1t)' },
+  { c:'var(--a2)', lt:'var(--a2l)', dark:'var(--a2t)' },
+  { c:'var(--a3)', lt:'var(--a3l)', dark:'var(--a3t)' },
+  { c:'var(--a4)', lt:'var(--a4l)', dark:'var(--a4t)' },
+  { c:'var(--a5)', lt:'var(--a5l)', dark:'var(--a5t)' },
+];
+
+const ICON_FULL = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`;
+const ICON_EMPTY = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2z"/><line x1="12" y1="14" x2="12" y2="19"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`;
+
+let members = ['Alejandra','Fernanda','Sebastián','Adriana','Daniela','Juan Sebastián','Marianne','Martín','Nataly','Isabelle','Nicole','Laura'];
+let messages = {};
+let currentMember = null;
+
+function init() { members.forEach(m => { if (!messages[m]) messages[m] = []; }); }
+function initials(n) { return n.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join(''); }
+function th(i) { return THEMES[i % THEMES.length]; }
+
+function totalMsgs() { return Object.values(messages).reduce((a,b)=>a+b.length,0); }
+
+function updateHeaderMeta() {
+  const t = totalMsgs();
+  document.getElementById('headerMeta').innerHTML =
+    `${t}&nbsp;mensaje${t!==1?'s':''}<br>${members.length}&nbsp;miembros`;
+}
+
+function renderGrid() {
+  init();
+  const g = document.getElementById('membersGrid');
+  g.innerHTML = '';
+  members.forEach((m, i) => {
+    const t = th(i);
+    const msgs = messages[m] || [];
+    const el = document.createElement('div');
+    el.className = 'mbox';
+    el.setAttribute('role','button');
+    el.setAttribute('aria-label',`Abrir buzón de ${m}`);
+    el.onclick = () => openMember(m);
+    el.innerHTML = `
+      <div class="mbox-top-bar" style="background:${t.c};"></div>
+      ${msgs.length>0?`<div class="mbox-badge" style="background:${t.c};color:#fff;">${msgs.length}</div>`:''}
+      <div class="mbox-icon-wrap" style="background:${t.lt};color:${t.c};">${msgs.length>0?ICON_FULL:ICON_EMPTY}</div>
+      <div class="mbox-avatar" style="background:${t.lt};color:${t.dark};">${initials(m)}</div>
+      <div class="mbox-name">${m}</div>
+      <div class="mbox-count">${msgs.length===0?'vacío':`${msgs.length} msg${msgs.length>1?'s':''}`}</div>
+    `;
+    g.appendChild(el);
+  });
+  updateHeaderMeta();
+}
+
+function openMember(member) {
+  currentMember = member;
+  document.getElementById('listView').classList.add('hidden');
+  document.getElementById('memberView').classList.remove('hidden');
+  renderMemberDetail();
+}
+
+function renderMemberDetail() {
+  const m = currentMember;
+  const idx = members.indexOf(m);
+  const t = th(idx);
+  const msgs = messages[m] || [];
+  const others = members.filter(x => x !== m);
+
+  document.getElementById('memberHero').innerHTML = `
+    <div class="member-hero-av" style="background:${t.lt};color:${t.dark};">${initials(m)}</div>
+    <div>
+      <div class="member-hero-name">${m}</div>
+      <div class="member-hero-sub">${msgs.length===0?'// sin mensajes aún':`// ${msgs.length} mensaje${msgs.length>1?'s':''} recibido${msgs.length>1?'s':''}`}</div>
+    </div>
+  `;
+
+  const sel = document.getElementById('fromSelect');
+  sel.innerHTML = `<option value="" disabled selected>Selecciona tu nombre...</option>`;
+  others.forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    sel.appendChild(opt);
+  });
+
+  document.getElementById('msgText').value = '';
+  updateCharCount();
+
+  const cont = document.getElementById('lettersContainer');
+  if (msgs.length === 0) {
+    cont.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-icon">[ vacío ]</span>
+        <p class="empty-text">Nadie ha enviado una cartita todavía.<br>¡Sé el primero!</p>
+      </div>`;
+  } else {
+    cont.innerHTML = '';
+    msgs.slice().reverse().forEach((msg, i) => {
+      const si = members.indexOf(msg.from);
+      const st = th(si !== -1 ? si : i);
+      const card = document.createElement('div');
+      card.className = 'letter-card';
+      card.innerHTML = `
+        <div class="letter-accent" style="background:${st.c};"></div>
+        <div class="letter-head">
+          <div class="letter-av" style="background:${st.lt};color:${st.dark};">${initials(msg.from)}</div>
+          <span class="letter-from">${msg.from}</span>
+          <span class="letter-time">${msg.time}</span>
+        </div>
+        <div class="letter-body">${escHtml(msg.text)}</div>
+      `;
+      cont.appendChild(card);
+    });
+  }
+}
+
+function sendMessage() {
+  const from = document.getElementById('fromSelect').value;
+  const text = document.getElementById('msgText').value.trim();
+  if (!from) { showToast('> Selecciona quién envía'); return; }
+  if (!text)  { showToast('> Escribe un mensaje'); return; }
+  const now = new Date();
+  const time = now.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+  if (!messages[currentMember]) messages[currentMember] = [];
+  messages[currentMember].push({from,text,time});
+  document.getElementById('msgText').value = '';
+  updateCharCount();
+  renderMemberDetail();
+  updateHeaderMeta();
+  showToast('> Cartita enviada ✓');
+}
+
+function goBack() {
+  currentMember = null;
+  document.getElementById('memberView').classList.add('hidden');
+  document.getElementById('listView').classList.remove('hidden');
+  renderGrid();
+}
+
+
+function updateCharCount() {
+  const v = document.getElementById('msgText').value.length;
+  document.getElementById('charCount').textContent = `${v} / 400`;
+}
+
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+renderGrid();
+</script>
+</body>
+</html>
