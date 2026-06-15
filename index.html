@@ -538,137 +538,25 @@ const THEMES = [
 const ICON_FULL = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`;
 const ICON_EMPTY = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2z"/><line x1="12" y1="14" x2="12" y2="19"/><line x1="9" y1="17" x2="15" y2="17"/></svg>`;
 
-let members = ['Alejandra','Fernanda','Sebastián','Adriana','Daniela','Juan Sebastián','Marianne','Martín','Nataly','Isabelle','Nicole','Laura'];
-let messages = {};
-let currentMember = null;
+// ── SUPABASE CONFIG ── pega aquí tus valores ──────────────
+const SUPABASE_URL  = 'https://agdgdgthlkguzvuqjrki.supabase.co/rest/v1/';       // ej: https://abcdef.supabase.co
+const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGdkZ3RobGtndXp2dXFqcmtpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDkxMjIsImV4cCI6MjA5NzEyNTEyMn0.Xx1v147EGr_JPHbtoKbNe2ihrN7gULNubSCM1lD3HsM';  // empieza con "eyJ..."
+// ──────────────────────────────────────────────────────────
 
-function init() { members.forEach(m => { if (!messages[m]) messages[m] = []; }); }
+const HEADERS = {
+  'Content-Type':  'application/json',
+  'apikey':        SUPABASE_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_KEY,
+  'Prefer':        'return=minimal'
+};
+
+const members = ['Alejandra','Fernanda','Sebastián','Adriana','Daniela','Juan Sebastián','Marianne','Martín','Nataly','Isabelle','Nicole','Laura'];
+let currentMember = null;
+let cachedMsgs = [];   // mensajes del miembro abierto actualmente
+
 function initials(n) { return n.trim().split(/\s+/).slice(0,2).map(w=>w[0].toUpperCase()).join(''); }
 function th(i) { return THEMES[i % THEMES.length]; }
-
-function totalMsgs() { return Object.values(messages).reduce((a,b)=>a+b.length,0); }
-
-function updateHeaderMeta() {
-  const t = totalMsgs();
-  document.getElementById('headerMeta').innerHTML =
-    `${t}&nbsp;mensaje${t!==1?'s':''}<br>${members.length}&nbsp;miembros`;
-}
-
-function renderGrid() {
-  init();
-  const g = document.getElementById('membersGrid');
-  g.innerHTML = '';
-  members.forEach((m, i) => {
-    const t = th(i);
-    const msgs = messages[m] || [];
-    const el = document.createElement('div');
-    el.className = 'mbox';
-    el.setAttribute('role','button');
-    el.setAttribute('aria-label',`Abrir buzón de ${m}`);
-    el.onclick = () => openMember(m);
-    el.innerHTML = `
-      <div class="mbox-top-bar" style="background:${t.c};"></div>
-      ${msgs.length>0?`<div class="mbox-badge" style="background:${t.c};color:#fff;">${msgs.length}</div>`:''}
-      <div class="mbox-icon-wrap" style="background:${t.lt};color:${t.c};">${msgs.length>0?ICON_FULL:ICON_EMPTY}</div>
-      <div class="mbox-avatar" style="background:${t.lt};color:${t.dark};">${initials(m)}</div>
-      <div class="mbox-name">${m}</div>
-      <div class="mbox-count">${msgs.length===0?'vacío':`${msgs.length} msg${msgs.length>1?'s':''}`}</div>
-    `;
-    g.appendChild(el);
-  });
-  updateHeaderMeta();
-}
-
-function openMember(member) {
-  currentMember = member;
-  document.getElementById('listView').classList.add('hidden');
-  document.getElementById('memberView').classList.remove('hidden');
-  renderMemberDetail();
-}
-
-function renderMemberDetail() {
-  const m = currentMember;
-  const idx = members.indexOf(m);
-  const t = th(idx);
-  const msgs = messages[m] || [];
-  const others = members.filter(x => x !== m);
-
-  document.getElementById('memberHero').innerHTML = `
-    <div class="member-hero-av" style="background:${t.lt};color:${t.dark};">${initials(m)}</div>
-    <div>
-      <div class="member-hero-name">${m}</div>
-      <div class="member-hero-sub">${msgs.length===0?'// sin mensajes aún':`// ${msgs.length} mensaje${msgs.length>1?'s':''} recibido${msgs.length>1?'s':''}`}</div>
-    </div>
-  `;
-
-  const sel = document.getElementById('fromSelect');
-  sel.innerHTML = `<option value="" disabled selected>Selecciona tu nombre...</option>`;
-  others.forEach(o => {
-    const opt = document.createElement('option');
-    opt.value = o; opt.textContent = o;
-    sel.appendChild(opt);
-  });
-
-  document.getElementById('msgText').value = '';
-  updateCharCount();
-
-  const cont = document.getElementById('lettersContainer');
-  if (msgs.length === 0) {
-    cont.innerHTML = `
-      <div class="empty-state">
-        <span class="empty-icon">[ vacío ]</span>
-        <p class="empty-text">Nadie ha enviado una cartita todavía.<br>¡Sé el primero!</p>
-      </div>`;
-  } else {
-    cont.innerHTML = '';
-    msgs.slice().reverse().forEach((msg, i) => {
-      const si = members.indexOf(msg.from);
-      const st = th(si !== -1 ? si : i);
-      const card = document.createElement('div');
-      card.className = 'letter-card';
-      card.innerHTML = `
-        <div class="letter-accent" style="background:${st.c};"></div>
-        <div class="letter-head">
-          <div class="letter-av" style="background:${st.lt};color:${st.dark};">${initials(msg.from)}</div>
-          <span class="letter-from">${msg.from}</span>
-          <span class="letter-time">${msg.time}</span>
-        </div>
-        <div class="letter-body">${escHtml(msg.text)}</div>
-      `;
-      cont.appendChild(card);
-    });
-  }
-}
-
-function sendMessage() {
-  const from = document.getElementById('fromSelect').value;
-  const text = document.getElementById('msgText').value.trim();
-  if (!from) { showToast('> Selecciona quién envía'); return; }
-  if (!text)  { showToast('> Escribe un mensaje'); return; }
-  const now = new Date();
-  const time = now.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
-  if (!messages[currentMember]) messages[currentMember] = [];
-  messages[currentMember].push({from,text,time});
-  document.getElementById('msgText').value = '';
-  updateCharCount();
-  renderMemberDetail();
-  updateHeaderMeta();
-  showToast('> Cartita enviada ✓');
-}
-
-function goBack() {
-  currentMember = null;
-  document.getElementById('memberView').classList.add('hidden');
-  document.getElementById('listView').classList.remove('hidden');
-  renderGrid();
-}
-
-
-function updateCharCount() {
-  const v = document.getElementById('msgText').value.length;
-  document.getElementById('charCount').textContent = `${v} / 400`;
-}
-
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'); }
 
 function showToast(msg) {
   const t = document.getElementById('toast');
@@ -676,8 +564,183 @@ function showToast(msg) {
   setTimeout(()=>t.classList.remove('show'), 2400);
 }
 
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+function updateCharCount() {
+  const v = document.getElementById('msgText').value.length;
+  document.getElementById('charCount').textContent = `${v} / 400`;
+}
+
+// ── SUPABASE: traer todos los mensajes (para contar por miembro) ──
+async function fetchAllCounts() {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/messages?select=to_member`, { headers: HEADERS });
+    const data = await res.json();
+    const counts = {};
+    members.forEach(m => counts[m] = 0);
+    data.forEach(r => { if (counts[r.to_member] !== undefined) counts[r.to_member]++; });
+    return counts;
+  } catch { return {}; }
+}
+
+// ── SUPABASE: traer mensajes de un miembro ──
+async function fetchMessages(member) {
+  const encoded = encodeURIComponent(member);
+  const res = await fetch(
+    `${SUPABASE_URL}/rest/v1/messages?to_member=eq.${encoded}&order=created_at.asc&select=*`,
+    { headers: HEADERS }
+  );
+  return await res.json();
+}
+
+// ── SUPABASE: guardar mensaje ──
+async function saveMessage(to, from, text) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
+    method: 'POST',
+    headers: HEADERS,
+    body: JSON.stringify({ to_member: to, from_member: from, text })
+  });
+  return res.ok;
+}
+
+// ── RENDER GRID ──
+async function renderGrid() {
+  const g = document.getElementById('membersGrid');
+  g.innerHTML = members.map((m,i) => {
+    const t = th(i);
+    return `<div class="mbox" role="button" aria-label="Abrir buzón de ${m}" onclick="openMember('${m.replace(/'/g,"\\'")}')">
+      <div class="mbox-top-bar" style="background:${t.c};"></div>
+      <div class="mbox-icon-wrap" style="background:${t.lt};color:${t.c};" id="icon-${i}">${ICON_EMPTY}</div>
+      <div class="mbox-avatar" style="background:${t.lt};color:${t.dark};">${initials(m)}</div>
+      <div class="mbox-name">${m}</div>
+      <div class="mbox-count" id="count-${i}">...</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('headerMeta').innerHTML = `cargando...<br>${members.length}&nbsp;miembros`;
+
+  const counts = await fetchAllCounts();
+  let total = 0;
+  members.forEach((m, i) => {
+    const n = counts[m] || 0;
+    total += n;
+    document.getElementById(`count-${i}`).textContent = n === 0 ? 'vacío' : `${n} msg${n>1?'s':''}`;
+    if (n > 0) {
+      const wrap = document.getElementById(`icon-${i}`);
+      const t = th(i);
+      wrap.style.color = t.c;
+      wrap.innerHTML = `${ICON_FULL}<div class="mbox-badge" style="background:${t.c};color:#fff;">${n}</div>`;
+    }
+  });
+  document.getElementById('headerMeta').innerHTML = `${total}&nbsp;mensaje${total!==1?'s':''}<br>${members.length}&nbsp;miembros`;
+}
+
+// ── ABRIR BUZÓN ──
+async function openMember(member) {
+  currentMember = member;
+  document.getElementById('listView').classList.add('hidden');
+  document.getElementById('memberView').classList.remove('hidden');
+
+  const idx = members.indexOf(member);
+  const t = th(idx);
+
+  // Hero skeleton
+  document.getElementById('memberHero').innerHTML = `
+    <div class="member-hero-av" style="background:${t.lt};color:${t.dark};">${initials(member)}</div>
+    <div>
+      <div class="member-hero-name">${member}</div>
+      <div class="member-hero-sub">// cargando...</div>
+    </div>`;
+
+  // Selector de remitente
+  const sel = document.getElementById('fromSelect');
+  sel.innerHTML = `<option value="" disabled selected>Selecciona tu nombre...</option>`;
+  members.filter(x=>x!==member).forEach(o => {
+    const opt = document.createElement('option');
+    opt.value = o; opt.textContent = o;
+    sel.appendChild(opt);
+  });
+
+  document.getElementById('msgText').value = '';
+  updateCharCount();
+  document.getElementById('lettersContainer').innerHTML = `<div class="empty-state"><span class="empty-icon">[ cargando... ]</span></div>`;
+
+  // Cargar mensajes reales
+  try {
+    cachedMsgs = await fetchMessages(member);
+  } catch {
+    cachedMsgs = [];
+  }
+  renderMemberDetail();
+}
+
+// ── RENDER DETALLE ──
+function renderMemberDetail() {
+  const m = currentMember;
+  const idx = members.indexOf(m);
+  const t = th(idx);
+  const msgs = cachedMsgs;
+
+  document.getElementById('memberHero').innerHTML = `
+    <div class="member-hero-av" style="background:${t.lt};color:${t.dark};">${initials(m)}</div>
+    <div>
+      <div class="member-hero-name">${m}</div>
+      <div class="member-hero-sub">${msgs.length===0?'// sin mensajes aún':`// ${msgs.length} mensaje${msgs.length>1?'s':''} recibido${msgs.length>1?'s':''}`}</div>
+    </div>`;
+
+  const cont = document.getElementById('lettersContainer');
+  if (msgs.length === 0) {
+    cont.innerHTML = `<div class="empty-state"><span class="empty-icon">[ vacío ]</span><p class="empty-text">Nadie ha enviado una cartita todavía.<br>¡Sé el primero!</p></div>`;
+  } else {
+    cont.innerHTML = '';
+    msgs.slice().reverse().forEach((msg, i) => {
+      const si = members.indexOf(msg.from_member);
+      const st = th(si !== -1 ? si : i);
+      const time = new Date(msg.created_at).toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+      const card = document.createElement('div');
+      card.className = 'letter-card';
+      card.innerHTML = `
+        <div class="letter-accent" style="background:${st.c};"></div>
+        <div class="letter-head">
+          <div class="letter-av" style="background:${st.lt};color:${st.dark};">${initials(msg.from_member)}</div>
+          <span class="letter-from">${msg.from_member}</span>
+          <span class="letter-time">${time}</span>
+        </div>
+        <div class="letter-body">${escHtml(msg.text)}</div>`;
+      cont.appendChild(card);
+    });
+  }
+}
+
+// ── ENVIAR MENSAJE ──
+async function sendMessage() {
+  const from = document.getElementById('fromSelect').value;
+  const text = document.getElementById('msgText').value.trim();
+  if (!from) { showToast('> Selecciona quién envía'); return; }
+  if (!text)  { showToast('> Escribe un mensaje'); return; }
+
+  const btn = document.querySelector('.send-btn');
+  btn.disabled = true; btn.textContent = 'Enviando...';
+
+  const ok = await saveMessage(currentMember, from, text);
+  btn.disabled = false;
+  btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar`;
+
+  if (!ok) { showToast('> Error al enviar, intenta de nuevo'); return; }
+
+  document.getElementById('msgText').value = '';
+  updateCharCount();
+  showToast('> Cartita enviada ✓');
+
+  cachedMsgs = await fetchMessages(currentMember);
+  renderMemberDetail();
+}
+
+// ── VOLVER ──
+function goBack() {
+  currentMember = null;
+  cachedMsgs = [];
+  document.getElementById('memberView').classList.add('hidden');
+  document.getElementById('listView').classList.remove('hidden');
+  renderGrid();
 }
 
 renderGrid();
